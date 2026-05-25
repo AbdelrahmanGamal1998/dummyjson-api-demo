@@ -1,0 +1,272 @@
+{
+  "info": {
+    "_postman_id": "dummyjson-automation-v1",
+    "name": "DummyJSON API Automation",
+    "description": "Login token correlation test suite for https://dummyjson.com — no API key required",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",   "value": "https://dummyjson.com", "type": "string" },
+    { "key": "authToken", "value": "",                      "type": "string" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "var token = pm.collectionVariables.get('authToken');",
+          "var isLogin = pm.request.url.toString().indexOf('/auth/login') !== -1;",
+          "if (!isLogin && token) {",
+          "  pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + token });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "01 POST /auth/login - valid credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Response time under 2000ms', function() { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                  "pm.test('Response has accessToken', function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('accessToken');",
+                  "  pm.expect(pm.response.json().accessToken).to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('Response has user info', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('username');",
+                  "  pm.expect(json).to.have.property('email');",
+                  "});",
+                  "var token = pm.response.json().accessToken;",
+                  "pm.collectionVariables.set('authToken', token);",
+                  "pm.test('Token stored for correlation', function() {",
+                  "  pm.expect(pm.collectionVariables.get('authToken')).to.equal(token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"emilys\",\n  \"password\": \"emilyspass\"\n}"
+            }
+          }
+        },
+        {
+          "name": "02 POST /auth/login - invalid credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function() { pm.response.to.have.status(400); });",
+                  "pm.test('Response time under 2000ms', function() { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                  "pm.test('Error message present', function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"wronguser\",\n  \"password\": \"wrongpass\"\n}"
+            }
+          }
+        },
+        {
+          "name": "03 GET /auth/me - get current user with token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Response time under 2000ms', function() { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                  "pm.test('Returns correct user', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.username).to.equal('emilys');",
+                  "  pm.expect(json).to.have.property('email');",
+                  "  pm.expect(json).to.have.property('firstName');",
+                  "});",
+                  "pm.test('Token correlation worked', function() {",
+                  "  pm.expect(pm.collectionVariables.get('authToken')).to.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "04 GET /products - list products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Response time under 2000ms', function() { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                  "pm.test('Returns products array', function() {",
+                  "  pm.expect(pm.response.json().products).to.be.an('array');",
+                  "  pm.expect(pm.response.json().products.length).to.be.above(0);",
+                  "});",
+                  "pm.test('Products have required fields', function() {",
+                  "  var product = pm.response.json().products[0];",
+                  "  pm.expect(product).to.have.property('id');",
+                  "  pm.expect(product).to.have.property('title');",
+                  "  pm.expect(product).to.have.property('price');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/products"
+          }
+        },
+        {
+          "name": "05 GET /products/1 - single product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Response time under 2000ms', function() { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                  "pm.test('Product id is 1', function() {",
+                  "  pm.expect(pm.response.json().id).to.equal(1);",
+                  "});",
+                  "pm.test('Product has required fields', function() {",
+                  "  var product = pm.response.json();",
+                  "  pm.expect(product).to.have.property('title');",
+                  "  pm.expect(product).to.have.property('price');",
+                  "  pm.expect(product).to.have.property('category');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/products/1"
+          }
+        },
+        {
+          "name": "06 POST /products/add - create product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function() { pm.response.to.have.status(201); });",
+                  "pm.test('Response time under 2000ms', function() { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                  "pm.test('Created product has id', function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('id');",
+                  "});",
+                  "pm.test('Title matches request', function() {",
+                  "  pm.expect(pm.response.json().title).to.equal('Automation Test Product');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/products/add",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Automation Test Product\",\n  \"price\": 99.99,\n  \"description\": \"Created by GitHub Actions pipeline\",\n  \"category\": \"test\"\n}"
+            }
+          }
+        },
+        {
+          "name": "07 PUT /products/1 - full update",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Response time under 2000ms', function() { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                  "pm.test('Title reflects update', function() {",
+                  "  pm.expect(pm.response.json().title).to.equal('Updated Product Title');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/products/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Product Title\",\n  \"price\": 149.99\n}"
+            }
+          }
+        },
+        {
+          "name": "08 DELETE /products/1 - delete product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Response time under 2000ms', function() { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                  "pm.test('Deleted product has isDeleted flag', function() {",
+                  "  pm.expect(pm.response.json().isDeleted).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/products/1"
+          }
+        }
+      ]
+    }
+  ]
+}
