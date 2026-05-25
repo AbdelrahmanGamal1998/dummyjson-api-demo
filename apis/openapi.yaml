@@ -5,13 +5,21 @@ info:
   description: Test suite for DummyJSON — login token correlation demo
   contact:
     email: abdelrahmangamal.h@gmail.com
+  license:
+    name: MIT
+
 servers:
   - url: https://dummyjson.com
+
+security:
+  - bearerAuth: []
 
 paths:
   /auth/login:
     post:
+      operationId: loginUser
       summary: Login and get access token
+      security: []
       requestBody:
         required: true
         content:
@@ -27,12 +35,13 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
         '400':
           description: Invalid credentials
+        '401':
+          description: Unauthorized
 
   /auth/me:
     get:
+      operationId: getCurrentUser
       summary: Get current authenticated user
-      security:
-        - bearerAuth: []
       responses:
         '200':
           description: Returns current user info
@@ -45,6 +54,7 @@ paths:
 
   /products:
     get:
+      operationId: listProducts
       summary: List all products
       responses:
         '200':
@@ -53,9 +63,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProductsListResponse'
+        '401':
+          description: Unauthorized
 
   /products/add:
     post:
+      operationId: createProduct
       summary: Create a new product
       requestBody:
         required: true
@@ -66,9 +79,14 @@ paths:
       responses:
         '201':
           description: Product created
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
 
   /products/{id}:
     get:
+      operationId: getProduct
       summary: Get a single product
       parameters:
         - name: id
@@ -79,9 +97,12 @@ paths:
       responses:
         '200':
           description: Returns product
+        '401':
+          description: Unauthorized
         '404':
           description: Product not found
     put:
+      operationId: updateProduct
       summary: Update a product
       parameters:
         - name: id
@@ -98,7 +119,14 @@ paths:
       responses:
         '200':
           description: Product updated
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Product not found
     delete:
+      operationId: deleteProduct
       summary: Delete a product
       parameters:
         - name: id
@@ -109,6 +137,10 @@ paths:
       responses:
         '200':
           description: Product deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Product not found
 
 components:
   securitySchemes:
