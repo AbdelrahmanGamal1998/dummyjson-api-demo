@@ -51,7 +51,7 @@ jobs:
 
       - name: Run API tests
         run: |
-          apidog run tests/dummyjson.collection.json \
+         apidog run "tests/DummyJSON API Tests.apidog-cli.json" \
             -r html,cli,junit \
             --out-dir apidog-reports/
 
